@@ -24,14 +24,13 @@ import (
 	"time"
 
 	"github.com/google/go-github/v56/github"
+	reporters "github.com/onsi/ginkgo/v2/reporters"
 	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/pkg/errors"
 	"github.com/redhat-appstudio/qe-tools/pkg/prow"
 	"github.com/rs/zerolog"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
-
-	reporters "github.com/onsi/ginkgo/v2/reporters"
 )
 
 const (
@@ -51,7 +50,7 @@ type PRCommentHandler struct {
 
 type FailedTestCasesReport struct {
 	headerString        string
-	failedTestCaseNames     []string
+	failedTestCaseNames []string
 	hasBootstrapFailure bool
 }
 
@@ -201,7 +200,7 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(logger zerol
 					if failedTCReport.hasBootstrapFailure {
 						systemErrString := strings.Split(tc.SystemErr, "\n")
 						tcMessage = strings.Join(systemErrString[len(systemErrString)-16:], "\n")
-					} else if (tc.Failure != nil) {
+					} else if tc.Failure != nil {
 						tcMessage = tc.Failure.Message
 					} else {
 						tcMessage = tc.Error.Message
