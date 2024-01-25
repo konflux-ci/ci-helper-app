@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	targetAuthor             = "dheerajodha"
+	targetAuthor             = "openshift-ci[bot]"
 	junitFilename            = "junit.xml"
 	junitFilenameRegex       = `(junit.xml)`
 	openshiftCITestSuiteName = "openshift-ci job"
