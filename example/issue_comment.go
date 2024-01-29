@@ -236,7 +236,7 @@ func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesRep
 		Body: &msg,
 	}
 
-	err := wait.PollUntilContextTimeout(context.Background(), 3*time.Second, 10*time.Minute, true, func(context.Context) (done bool, err error) {
+	err := wait.PollUntilContextTimeout(context.Background(), 15*time.Second, 1*time.Minute, true, func(context.Context) (done bool, err error) {
 		if _, _, err := client.Issues.EditComment(ctx, repoOwner, repoName, commentID, &prComment); err != nil {
 			logger.Error().Err(err).Msgf("Failed to edit the comment...Retrying")
 			return false, nil

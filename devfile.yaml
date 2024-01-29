@@ -1,0 +1,32 @@
+schemaVersion: 2.2.0
+metadata:
+  name: ci-helper-app
+components:
+  - name: image-build
+    image:
+      imageName: ci-helper-app:latest
+      dockerfile:
+        uri: Dockerfile
+        buildContext: .
+        rootRequired: false
+  - name: image-deploy
+    attributes:
+      deployment/replicas: 1
+      deployment/container-port: 8080
+    kubernetes:
+      uri: deploy/base/deployment.yaml
+commands:
+  - id: build-image
+    apply:
+      component: image-build
+  - id: deploy-image
+    apply:
+      component: image-deploy
+  - id: deploy
+    composite:
+      commands:
+        - build-image
+        - deploy-image
+      group:
+        kind: deploy
+        isDefault: true
