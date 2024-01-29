@@ -1,0 +1,39 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ci-helper-app
+spec:
+  replicas: 1
+  template:
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: ci-helper-app
+          command: ["/ci-helper-app"]
+          env:
+            - name: GITHUB_APP_INTEGRATION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ci-helper-app-secrets
+                  key: app-id
+            - name: GITHUB_APP_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ci-helper-app-secrets
+                  key: webhook-secret
+            - name: GITHUB_APP_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ci-helper-app-secrets
+                  key: app-private-key
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+      securityContext:
+        runAsNonRoot: true
