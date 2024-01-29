@@ -50,5 +50,7 @@ func ReadConfig(path string) (*Config, error) {
 		return nil, errors.Wrap(err, "failed parsing configuration file")
 	}
 
+	c.Github.SetValuesFromEnv("")
+
 	return &c, nil
 }

@@ -55,9 +55,9 @@ func TestSetValuesFromEnv(t *testing.T) {
 				"GITHUB_V4_API_URL":          "https://github.company.domain/api/graphql",
 				"GITHUB_APP_INTEGRATION_ID":  "4",
 				"GITHUB_APP_WEBHOOK_SECRET":  "secrethookvalue",
-				"GITHUB_APP_PRIVATE_KEY":     "-----BEGIN RSA PRIVATE KEY-----\nxxx\nxxx\nxxx\n-----END RSA PRIVATE KEY-----",
+				"GITHUB_APP_PRIVATE_KEY":     "-----BEGIN RSA PRIVATE KEY-----\nxxx\nxxx\nxxx\n-----END RSA PRIVATE KEY-----", // # notsecret
 				"GITHUB_OAUTH_CLIENT_ID":     "92faf4b9146f3278",
-				"GITHUB_OAUTH_CLIENT_SECRET": "b00f7ea6d59dd5c9578c48f9391e71db",
+				"GITHUB_OAUTH_CLIENT_SECRET": "b00f7ea6d59dd5c9578c48f9391e71db", // # notsecret
 			},
 			Output: func(c *Config) {
 				c.WebURL = "https://github.company.domain"
@@ -65,9 +65,9 @@ func TestSetValuesFromEnv(t *testing.T) {
 				c.V4APIURL = "https://github.company.domain/api/graphql"
 				c.App.IntegrationID = 4
 				c.App.WebhookSecret = "secrethookvalue"
-				c.App.PrivateKey = "-----BEGIN RSA PRIVATE KEY-----\nxxx\nxxx\nxxx\n-----END RSA PRIVATE KEY-----"
+				c.App.PrivateKey = "-----BEGIN RSA PRIVATE KEY-----\nxxx\nxxx\nxxx\n-----END RSA PRIVATE KEY-----" // # notsecret
 				c.OAuth.ClientID = "92faf4b9146f3278"
-				c.OAuth.ClientSecret = "b00f7ea6d59dd5c9578c48f9391e71db"
+				c.OAuth.ClientSecret = "b00f7ea6d59dd5c9578c48f9391e71db" // # notsecret
 			},
 		},
 		"withPrefix": {
