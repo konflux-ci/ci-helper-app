@@ -131,12 +131,22 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 // extractProwJobURLFromCommentBody extracts the
 // Prow job's URL from the given PR comment's body
 func extractProwJobURLFromCommentBody(logger zerolog.Logger, commentBody string) (string, error) {
+	matchNotFoundError := fmt.Errorf("regex string %s found no matches for the comment body: %s", regexToFetchProwURL, commentBody)
+	var prowJobURL string
+
 	r, _ := regexp.Compile(regexToFetchProwURL)
 	sliceOfMatchingString := r.FindStringSubmatch(commentBody)
 	if sliceOfMatchingString == nil {
-		return "", fmt.Errorf("regex string %s found no matches for the comment body: %s", regexToFetchProwURL, commentBody)
+		return "", matchNotFoundError
 	}
-	prowJobURL := sliceOfMatchingString[1]
+	for _, match := range sliceOfMatchingString {
+		if !strings.Contains(match, "images") && !strings.HasSuffix(match, ")") {
+			prowJobURL = match
+		}
+	}
+	if prowJobURL == "" {
+		return "", matchNotFoundError
+	}
 	logger.Debug().Msgf("Prow Job's URL: %s", prowJobURL)
 
 	return prowJobURL, nil
