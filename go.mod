@@ -7,7 +7,7 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.8.0
 	github.com/google/go-github/v56 v56.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
-	github.com/hashicorp/golang-lru v0.6.0
+	github.com/hashicorp/golang-lru v1.0.2
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
