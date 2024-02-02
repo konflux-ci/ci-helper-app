@@ -25,8 +25,8 @@ import (
 
 	"github.com/google/go-github/v56/github"
 	reporters "github.com/onsi/ginkgo/v2/reporters"
-	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/pkg/errors"
+	"github.com/redhat-appstudio-qe/ci-helper-app/githubapp"
 	"github.com/redhat-appstudio/qe-tools/pkg/prow"
 	"github.com/rs/zerolog"
 	"k8s.io/apimachinery/pkg/util/wait"
