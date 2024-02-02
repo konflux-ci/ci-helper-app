@@ -17,7 +17,7 @@ require (
 	github.com/shurcooL/githubv4 v0.0.0-20231126234147-1cffa1f02456
 	golang.org/x/oauth2 v0.16.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/apimachinery v0.29.0
+	k8s.io/apimachinery v0.29.1
 	k8s.io/klog/v2 v2.120.1
 )
 
