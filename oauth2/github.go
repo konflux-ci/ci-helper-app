@@ -17,7 +17,7 @@ package oauth2
 import (
 	"strings"
 
-	"github.com/palantir/go-githubapp/githubapp"
+	"github.com/redhat-appstudio-qe/ci-helper-app/githubapp"
 	"golang.org/x/oauth2"
 )
 
