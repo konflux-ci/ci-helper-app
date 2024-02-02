@@ -22,12 +22,16 @@ import (
 
 	"github.com/gregjones/httpcache"
 	"github.com/rcrowley/go-metrics"
-	"github.com/redhat-appstudio-qe/ci-helper-app/githubapp"
+	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/rs/zerolog"
 )
 
+const (
+	DefaultWebhookRoute string = "/"
+)
+
 func main() {
-	config, err := ReadConfig("example/config.yml")
+	config, err := ReadConfig("config.yml")
 	if err != nil {
 		panic(err)
 	}
@@ -39,7 +43,7 @@ func main() {
 
 	cc, err := githubapp.NewDefaultCachingClientCreator(
 		config.Github,
-		githubapp.WithClientUserAgent("example-app/1.0.0"),
+		githubapp.WithClientUserAgent("ci-helper-app/1.0.0"),
 		githubapp.WithClientTimeout(3*time.Second),
 		githubapp.WithClientCaching(false, func() httpcache.Cache { return httpcache.NewMemoryCache() }),
 		githubapp.WithClientMiddleware(
@@ -52,12 +56,11 @@ func main() {
 
 	prCommentHandler := &PRCommentHandler{
 		ClientCreator: cc,
-		preamble:      config.AppConfig.PullRequestPreamble,
 	}
 
 	webhookHandler := githubapp.NewDefaultEventDispatcher(config.Github, prCommentHandler)
 
-	http.Handle(githubapp.DefaultWebhookRoute, webhookHandler)
+	http.Handle(DefaultWebhookRoute, webhookHandler)
 
 	addr := fmt.Sprintf("%s:%d", config.Server.Address, config.Server.Port)
 	logger.Info().Msgf("Starting server on %s...", addr)
