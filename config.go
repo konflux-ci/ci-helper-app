@@ -18,24 +18,18 @@ import (
 	"io/ioutil"
 
 	"github.com/pkg/errors"
-	"github.com/redhat-appstudio-qe/ci-helper-app/githubapp"
+	"github.com/palantir/go-githubapp/githubapp"
 	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
 	Server HTTPConfig       `yaml:"server"`
 	Github githubapp.Config `yaml:"github"`
-
-	AppConfig MyApplicationConfig `yaml:"app_configuration"`
 }
 
 type HTTPConfig struct {
 	Address string `yaml:"address"`
 	Port    int    `yaml:"port"`
-}
-
-type MyApplicationConfig struct {
-	PullRequestPreamble string `yaml:"pull_request_preamble"`
 }
 
 func ReadConfig(path string) (*Config, error) {
