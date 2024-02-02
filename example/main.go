@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/gregjones/httpcache"
-	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/rcrowley/go-metrics"
+	"github.com/redhat-appstudio-qe/ci-helper-app/githubapp"
 	"github.com/rs/zerolog"
 )
 

@@ -1,4 +1,4 @@
-module github.com/palantir/go-githubapp
+module github.com/redhat-appstudio-qe/ci-helper-app
 
 go 1.20
 
