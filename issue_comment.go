@@ -23,10 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v58/github"
 	reporters "github.com/onsi/ginkgo/v2/reporters"
 	"github.com/pkg/errors"
-	"github.com/redhat-appstudio-qe/ci-helper-app/githubapp"
+	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/redhat-appstudio/qe-tools/pkg/prow"
 	"github.com/rs/zerolog"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -44,8 +44,6 @@ const (
 
 type PRCommentHandler struct {
 	githubapp.ClientCreator
-
-	preamble string
 }
 
 type FailedTestCasesReport struct {
@@ -123,7 +121,9 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 	failedTCReport := setHeaderString(logger, overallJUnitSuites)
 	failedTCReport.extractFailedTestCases(logger, overallJUnitSuites)
 
-	failedTCReport.updateCommentWithFailedTestCasesReport(ctx, logger, client, event, body)
+	if err = failedTCReport.updateCommentWithFailedTestCasesReport(ctx, logger, client, event, body); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -225,7 +225,7 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(logger zerol
 
 // updateCommentWithFailedTestCasesReport updates the
 // PR comment's body with the names of failed test cases
-func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesReport(ctx context.Context, logger zerolog.Logger, client *github.Client, event github.IssueCommentEvent, commentBody string) {
+func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesReport(ctx context.Context, logger zerolog.Logger, client *github.Client, event github.IssueCommentEvent, commentBody string) error {
 	repoOwner := event.GetRepo().GetOwner().GetLogin()
 	repoName := event.GetRepo().GetName()
 	commentAuthor := event.GetComment().GetUser().GetLogin()
@@ -254,10 +254,11 @@ func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesRep
 
 		return true, nil
 	})
-
 	if err != nil {
 		logger.Error().Err(err).Msgf("Failed to edit comment (ID: %v) due to the error: %+v. Will Stop processing this comment", commentID, err)
+		return err
 	}
 
 	logger.Debug().Msgf("Successfully updated comment (with ID:%d) with the names of failed test cases", commentID)
+	return nil
 }
