@@ -1,0 +1,7 @@
+.git*
+.vscode
+ci-helper-app
+deploy
+devfile.yaml
+LICENSE
+README.md
