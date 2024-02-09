@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/gregjones/httpcache"
-	"github.com/rcrowley/go-metrics"
 	"github.com/palantir/go-githubapp/githubapp"
+	"github.com/rcrowley/go-metrics"
 	"github.com/rs/zerolog"
 )
 
@@ -31,7 +31,7 @@ const (
 )
 
 func main() {
-	config, err := ReadConfig("config.yml")
+	config, err := ReadConfig("config.yaml")
 	if err != nil {
 		panic(err)
 	}

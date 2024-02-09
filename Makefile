@@ -10,4 +10,4 @@ help: ## list makefile targets
 
 .PHONY: build
 build: ## build golang binary
-	go build -o $(PROJECT_NAME) example/config.go example/issue_comment.go example/main.go
+	go build -o $(PROJECT_NAME)
