@@ -15,7 +15,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/palantir/go-githubapp/githubapp"
@@ -35,7 +35,7 @@ type HTTPConfig struct {
 func ReadConfig(path string) (*Config, error) {
 	var c Config
 
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed reading server config file: %s", path)
 	}
