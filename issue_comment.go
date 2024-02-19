@@ -119,7 +119,7 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 	}
 
 	failedTCReport := setHeaderString(logger, overallJUnitSuites)
-	failedTCReport.extractFailedTestCases(logger, overallJUnitSuites)
+	failedTCReport.extractFailedTestCases(scanner, logger, overallJUnitSuites)
 
 	if err = failedTCReport.updateCommentWithFailedTestCasesReport(ctx, logger, client, event, body); err != nil {
 		return err
@@ -179,7 +179,7 @@ func setHeaderString(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitT
 
 	if len(overallJUnitSuites.TestSuites) == 0 {
 		logger.Debug().Msg("The given Prow job failed while creating the cluster")
-		failedTCReport.headerString = ":rotating_light: **Error occurred while creating the cluster, please check the Prow's build logs.**\n"
+		failedTCReport.headerString = ":rotating_light: **This is a CI system failure, please consult with the QE team.**\n"
 	} else if len(overallJUnitSuites.TestSuites) == 1 && overallJUnitSuites.TestSuites[0].Name == openshiftCITestSuiteName {
 		logger.Debug().Msg("The given Prow job failed during bootstrapping the cluster")
 		failedTCReport.hasBootstrapFailure = true
@@ -196,8 +196,22 @@ func setHeaderString(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitT
 // 'failedTestCaseNames' field with the names of failed test cases
 // within the given JUnitTestSuites. It does nothing, if the given
 // JUnitTestSuites is nil.
-func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitTestSuites) {
+func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *prow.ArtifactScanner, logger zerolog.Logger, overallJUnitSuites *reporters.JUnitTestSuites) {
 	if len(overallJUnitSuites.TestSuites) == 0 {
+		parentStepName := "/"
+		buildLogFileName := "build-log.txt"
+
+		if asMap := scanner.ArtifactStepMap[prow.ArtifactStepName(parentStepName)]; asMap != nil {
+			if asMap[prow.ArtifactFilename(buildLogFileName)].Content == "" {
+				logger.Error().Msgf("Failed to fetch content of the file: %s within the `%s` parent directory", buildLogFileName, parentStepName)
+				return
+			}
+
+			testCaseEntry := "<details><summary>Click to view logs</summary><br><pre>" + asMap[prow.ArtifactFilename(buildLogFileName)].Content + "</pre></details>"
+			failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
+		} else {
+			logger.Error().Msgf("Failed to find any files within the directory: %s", parentStepName)
+		}
 		return
 	}
 
@@ -215,7 +229,7 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(logger zerol
 					} else {
 						tcMessage = tc.Error.Message
 					}
-					testCaseEntry := ":arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n```\n" + tcMessage + "\n```"
+					testCaseEntry := "* :arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n```\n" + tcMessage + "\n```"
 					failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
 				}
 			}
@@ -237,7 +251,7 @@ func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesRep
 
 	if failedTCReport.failedTestCaseNames != nil && len(failedTCReport.failedTestCaseNames) > 0 {
 		for _, failedTCName := range failedTCReport.failedTestCaseNames {
-			msg = msg + fmt.Sprintf("\n* %s\n", failedTCName)
+			msg = msg + fmt.Sprintf("\n %s\n", failedTCName)
 		}
 	}
 	msg = msg + "\n-------------------------------\n\n" + commentBody
