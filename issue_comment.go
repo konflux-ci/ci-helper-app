@@ -38,6 +38,7 @@ const (
 	junitFilenameRegex       = `(junit.xml)`
 	openshiftCITestSuiteName = "openshift-ci job"
 	e2eTestSuiteName         = "Red Hat App Studio E2E tests"
+	LogKeyProwJobURL         = "prow_job_url"
 	regexToFetchProwURL      = `(https:\/\/prow.ci.openshift.org\/view\/gs\/test-platform-results\/pr-logs\/pull.*)\)`
 )
 
@@ -87,6 +88,8 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 	if err != nil {
 		return fmt.Errorf("unable to extract Prow job's URL from the PR comment's body: %+v", err)
 	}
+
+	logger = attachProwURLLogKeysToLogger(ctx, logger, prowJobURL)
 
 	cfg := prow.ScannerConfig{
 		ProwJobURL:     prowJobURL,
@@ -275,4 +278,14 @@ func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesRep
 	}
 
 	return nil
+}
+
+func attachProwURLLogKeysToLogger(ctx context.Context, logger zerolog.Logger, prowJobURL string) zerolog.Logger {
+	logctx := zerolog.Ctx(ctx).With()
+
+	if prowJobURL != "" {
+		logctx = logctx.Str(LogKeyProwJobURL, prowJobURL)
+		return logctx.Logger()
+	}
+	return logger
 }
