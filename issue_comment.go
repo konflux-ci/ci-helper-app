@@ -30,7 +30,6 @@ import (
 	"github.com/redhat-appstudio/qe-tools/pkg/prow"
 	"github.com/rs/zerolog"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -79,7 +78,7 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 	body := event.GetComment().GetBody()
 
 	if !strings.HasPrefix(author, targetAuthor) {
-		klog.Infof("Issue comment was not created by the user: %s. Ignoring this comment", targetAuthor)
+		logger.Debug().Msgf("Issue comment was not created by the user: %s. Ignoring this comment", targetAuthor)
 		return nil
 	}
 
@@ -101,14 +100,14 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 
 	err = wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 10*time.Minute, true, func(context.Context) (done bool, err error) {
 		if err := scanner.Run(); err != nil {
-			klog.Errorf("Failed to scan artifacts from the Prow job due to the error: %+v...Retrying", err)
+			logger.Error().Err(err).Msgf("Failed to scan artifacts from the Prow job...Retrying")
 			return false, nil
 		}
 
 		return true, nil
 	})
 	if err != nil {
-		logger.Error().Err(err).Msgf("Timed out while scanning artifacts for Prow job %s: %+v. Will Stop processing this comment", prowJobURL, err)
+		logger.Error().Err(err).Msgf("Timed out while scanning artifacts for Prow job %s. Will Stop processing this comment", prowJobURL)
 		return err
 	}
 
@@ -242,37 +241,38 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *pro
 func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesReport(ctx context.Context, logger zerolog.Logger, client *github.Client, event github.IssueCommentEvent, commentBody string) error {
 	repoOwner := event.GetRepo().GetOwner().GetLogin()
 	repoName := event.GetRepo().GetName()
-	commentAuthor := event.GetComment().GetUser().GetLogin()
 	commentID := event.GetComment().GetID()
 
-	logger.Debug().Msgf("Updating comment with ID:%d by %s", commentID, commentAuthor)
-
-	msg := failedTCReport.headerString
-
 	if failedTCReport.failedTestCaseNames != nil && len(failedTCReport.failedTestCaseNames) > 0 {
+		msg := failedTCReport.headerString
+
 		for _, failedTCName := range failedTCReport.failedTestCaseNames {
 			msg = msg + fmt.Sprintf("\n %s\n", failedTCName)
 		}
-	}
-	msg = msg + "\n-------------------------------\n\n" + commentBody
 
-	prComment := github.IssueComment{
-		Body: &msg,
-	}
+		msg = msg + "\n-------------------------------\n\n" + commentBody
 
-	err := wait.PollUntilContextTimeout(context.Background(), 15*time.Second, 1*time.Minute, true, func(context.Context) (done bool, err error) {
-		if _, _, err := client.Issues.EditComment(ctx, repoOwner, repoName, commentID, &prComment); err != nil {
-			logger.Error().Err(err).Msgf("Failed to edit the comment...Retrying")
-			return false, nil
+		prComment := github.IssueComment{
+			Body: &msg,
 		}
 
-		return true, nil
-	})
-	if err != nil {
-		logger.Error().Err(err).Msgf("Failed to edit comment (ID: %v) due to the error: %+v. Will Stop processing this comment", commentID, err)
-		return err
+		err := wait.PollUntilContextTimeout(context.Background(), 15*time.Second, 1*time.Minute, true, func(context.Context) (done bool, err error) {
+			if _, _, err := client.Issues.EditComment(ctx, repoOwner, repoName, commentID, &prComment); err != nil {
+				logger.Error().Err(err).Msgf("Failed to edit the comment...Retrying")
+				return false, nil
+			}
+
+			return true, nil
+		})
+		if err != nil {
+			logger.Error().Err(err).Msgf("Failed to edit comment (ID: %v) due to the error: %+v. Will Stop processing this comment", commentID, err)
+			return err
+		}
+
+		logger.Debug().Msgf("Successfully updated comment (with ID:%d) with the names of failed test cases", commentID)
+	} else {
+		logger.Debug().Msgf("Unable to find any details to update. Declining to update comment (with ID:%d)", commentID)
 	}
 
-	logger.Debug().Msgf("Successfully updated comment (with ID:%d) with the names of failed test cases", commentID)
 	return nil
 }
