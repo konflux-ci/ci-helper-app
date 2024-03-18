@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	targetAuthor             = "openshift-ci[bot]"
+	targetAuthor             = "dheerajodha"
 	junitFilename            = "junit.xml"
 	junitFilenameRegex       = `(junit.xml)`
 	openshiftCITestSuiteName = "openshift-ci job"
@@ -84,7 +84,7 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 	}
 
 	// extract the Prow job's URL
-	prowJobURL, err := extractProwJobURLFromCommentBody(logger, body)
+	prowJobURL, err := extractProwJobURLFromCommentBody(body)
 	if err != nil {
 		return fmt.Errorf("unable to extract Prow job's URL from the PR comment's body: %+v", err)
 	}
@@ -132,26 +132,19 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 
 // extractProwJobURLFromCommentBody extracts the
 // Prow job's URL from the given PR comment's body
-func extractProwJobURLFromCommentBody(logger zerolog.Logger, commentBody string) (string, error) {
-	matchNotFoundError := fmt.Errorf("regex string %s found no matches for the comment body: %s", regexToFetchProwURL, commentBody)
-	var prowJobURL string
-
+func extractProwJobURLFromCommentBody(commentBody string) (string, error) {
 	r, _ := regexp.Compile(regexToFetchProwURL)
-	sliceOfMatchingString := r.FindStringSubmatch(commentBody)
-	if sliceOfMatchingString == nil {
-		return "", matchNotFoundError
-	}
-	for _, match := range sliceOfMatchingString {
-		if !strings.Contains(match, "images") && !strings.HasSuffix(match, ")") {
-			prowJobURL = match
+	sliceOfMatchingString := r.FindAllStringSubmatch(commentBody, -1)
+
+	for _, matchesAndGroups := range sliceOfMatchingString {
+		for _, subsStr := range matchesAndGroups {
+			if !strings.Contains(subsStr, "images") && !strings.HasSuffix(subsStr, ")") {
+				return subsStr, nil
+			}
 		}
 	}
-	if prowJobURL == "" {
-		return "", matchNotFoundError
-	}
-	logger.Debug().Msgf("Prow Job's URL: %s", prowJobURL)
 
-	return prowJobURL, nil
+	return "", fmt.Errorf("regex string %s found no matches for the comment body: %s", regexToFetchProwURL, commentBody)
 }
 
 // getTestSuitesFromXMLFile returns all the JUnitTestSuites
