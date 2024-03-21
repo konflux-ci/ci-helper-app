@@ -30,7 +30,6 @@ import (
 	"github.com/redhat-appstudio/qe-tools/pkg/prow"
 	"github.com/rs/zerolog"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -39,6 +38,7 @@ const (
 	junitFilenameRegex       = `(junit.xml)`
 	openshiftCITestSuiteName = "openshift-ci job"
 	e2eTestSuiteName         = "Red Hat App Studio E2E tests"
+	LogKeyProwJobURL         = "prow_job_url"
 	regexToFetchProwURL      = `(https:\/\/prow.ci.openshift.org\/view\/gs\/test-platform-results\/pr-logs\/pull.*)\)`
 )
 
@@ -79,7 +79,7 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 	body := event.GetComment().GetBody()
 
 	if !strings.HasPrefix(author, targetAuthor) {
-		klog.Infof("Issue comment was not created by the user: %s. Ignoring this comment", targetAuthor)
+		logger.Debug().Msgf("Issue comment was not created by the user: %s. Ignoring this comment", targetAuthor)
 		return nil
 	}
 
@@ -89,7 +89,7 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 		return fmt.Errorf("unable to extract Prow job's URL from the PR comment's body: %+v", err)
 	}
 
-	logger.Debug().Msgf("Prow Job's URL: %s", prowJobURL)
+	logger = attachProwURLLogKeysToLogger(ctx, logger, prowJobURL)
 
 	cfg := prow.ScannerConfig{
 		ProwJobURL:     prowJobURL,
@@ -103,14 +103,14 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 
 	err = wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 10*time.Minute, true, func(context.Context) (done bool, err error) {
 		if err := scanner.Run(); err != nil {
-			klog.Errorf("Failed to scan artifacts from the Prow job due to the error: %+v...Retrying", err)
+			logger.Error().Err(err).Msgf("Failed to scan artifacts from the Prow job...Retrying")
 			return false, nil
 		}
 
 		return true, nil
 	})
 	if err != nil {
-		logger.Error().Err(err).Msgf("Timed out while scanning artifacts for Prow job %s: %+v. Will Stop processing this comment", prowJobURL, err)
+		logger.Error().Err(err).Msgf("Timed out while scanning artifacts for Prow job %s. Will Stop processing this comment", prowJobURL)
 		return err
 	}
 
@@ -121,7 +121,7 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 	}
 
 	failedTCReport := setHeaderString(logger, overallJUnitSuites)
-	failedTCReport.extractFailedTestCases(logger, overallJUnitSuites)
+	failedTCReport.extractFailedTestCases(scanner, logger, overallJUnitSuites)
 
 	if err = failedTCReport.updateCommentWithFailedTestCasesReport(ctx, logger, client, event, body); err != nil {
 		return err
@@ -174,7 +174,7 @@ func setHeaderString(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitT
 
 	if len(overallJUnitSuites.TestSuites) == 0 {
 		logger.Debug().Msg("The given Prow job failed while creating the cluster")
-		failedTCReport.headerString = ":rotating_light: **Error occurred while creating the cluster, please check the Prow's build logs.**\n"
+		failedTCReport.headerString = ":rotating_light: **This is a CI system failure, please consult with the QE team.**\n"
 	} else if len(overallJUnitSuites.TestSuites) == 1 && overallJUnitSuites.TestSuites[0].Name == openshiftCITestSuiteName {
 		logger.Debug().Msg("The given Prow job failed during bootstrapping the cluster")
 		failedTCReport.hasBootstrapFailure = true
@@ -189,10 +189,25 @@ func setHeaderString(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitT
 
 // extractFailedTestCases initialises the FailedTestCasesReport struct's
 // 'failedTestCaseNames' field with the names of failed test cases
-// within the given JUnitTestSuites. It does nothing, if the given
-// JUnitTestSuites is nil.
-func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitTestSuites) {
+// within given JUnitTestSuites -- if the given JUnitTestSuites is !nil.
+// And if it's nil, 'failedTestCaseNames' field is init with content of
+// "build-log.txt" file, if it exists.
+func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *prow.ArtifactScanner, logger zerolog.Logger, overallJUnitSuites *reporters.JUnitTestSuites) {
 	if len(overallJUnitSuites.TestSuites) == 0 {
+		parentStepName := "/"
+		buildLogFileName := "build-log.txt"
+
+		if asMap := scanner.ArtifactStepMap[prow.ArtifactStepName(parentStepName)]; asMap != nil {
+			if asMap[prow.ArtifactFilename(buildLogFileName)].Content == "" {
+				logger.Error().Msgf("Failed to fetch content of the file: %s within the `%s` parent directory", buildLogFileName, parentStepName)
+				return
+			}
+
+			testCaseEntry := "<details><summary>Click to view logs</summary><br><pre>" + asMap[prow.ArtifactFilename(buildLogFileName)].Content + "</pre></details>"
+			failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
+		} else {
+			logger.Error().Msgf("Failed to find any files within the directory: %s", parentStepName)
+		}
 		return
 	}
 
@@ -210,7 +225,7 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(logger zerol
 					} else {
 						tcMessage = tc.Error.Message
 					}
-					testCaseEntry := ":arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n```\n" + tcMessage + "\n```"
+					testCaseEntry := "* :arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n```\n" + tcMessage + "\n```"
 					failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
 				}
 			}
@@ -223,37 +238,48 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(logger zerol
 func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesReport(ctx context.Context, logger zerolog.Logger, client *github.Client, event github.IssueCommentEvent, commentBody string) error {
 	repoOwner := event.GetRepo().GetOwner().GetLogin()
 	repoName := event.GetRepo().GetName()
-	commentAuthor := event.GetComment().GetUser().GetLogin()
 	commentID := event.GetComment().GetID()
 
-	logger.Debug().Msgf("Updating comment with ID:%d by %s", commentID, commentAuthor)
-
-	msg := failedTCReport.headerString
-
 	if failedTCReport.failedTestCaseNames != nil && len(failedTCReport.failedTestCaseNames) > 0 {
+		msg := failedTCReport.headerString
+
 		for _, failedTCName := range failedTCReport.failedTestCaseNames {
-			msg = msg + fmt.Sprintf("\n* %s\n", failedTCName)
-		}
-	}
-	msg = msg + "\n-------------------------------\n\n" + commentBody
-
-	prComment := github.IssueComment{
-		Body: &msg,
-	}
-
-	err := wait.PollUntilContextTimeout(context.Background(), 15*time.Second, 1*time.Minute, true, func(context.Context) (done bool, err error) {
-		if _, _, err := client.Issues.EditComment(ctx, repoOwner, repoName, commentID, &prComment); err != nil {
-			logger.Error().Err(err).Msgf("Failed to edit the comment...Retrying")
-			return false, nil
+			msg = msg + fmt.Sprintf("\n %s\n", failedTCName)
 		}
 
-		return true, nil
-	})
-	if err != nil {
-		logger.Error().Err(err).Msgf("Failed to edit comment (ID: %v) due to the error: %+v. Will Stop processing this comment", commentID, err)
-		return err
+		msg = msg + "\n-------------------------------\n\n" + commentBody
+
+		prComment := github.IssueComment{
+			Body: &msg,
+		}
+
+		err := wait.PollUntilContextTimeout(context.Background(), 15*time.Second, 1*time.Minute, true, func(context.Context) (done bool, err error) {
+			if _, _, err := client.Issues.EditComment(ctx, repoOwner, repoName, commentID, &prComment); err != nil {
+				logger.Error().Err(err).Msgf("Failed to edit the comment...Retrying")
+				return false, nil
+			}
+
+			return true, nil
+		})
+		if err != nil {
+			logger.Error().Err(err).Msgf("Failed to edit comment (ID: %v) due to the error: %+v. Will Stop processing this comment", commentID, err)
+			return err
+		}
+
+		logger.Debug().Msgf("Successfully updated comment (with ID:%d) with the names of failed test cases", commentID)
+	} else {
+		logger.Debug().Msgf("Unable to find any details to update. Declining to update comment (with ID:%d)", commentID)
 	}
 
-	logger.Debug().Msgf("Successfully updated comment (with ID:%d) with the names of failed test cases", commentID)
 	return nil
+}
+
+func attachProwURLLogKeysToLogger(ctx context.Context, logger zerolog.Logger, prowJobURL string) zerolog.Logger {
+	logctx := zerolog.Ctx(ctx).With()
+
+	if prowJobURL != "" {
+		logctx = logctx.Str(LogKeyProwJobURL, prowJobURL)
+		return logctx.Logger()
+	}
+	return logger
 }
