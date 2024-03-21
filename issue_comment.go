@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	targetAuthor             = "dheerajodha"
+	targetAuthor             = "openshift-ci[bot]"
 	junitFilename            = "junit.xml"
 	junitFilenameRegex       = `(junit.xml)`
 	openshiftCITestSuiteName = "openshift-ci job"
@@ -189,8 +189,9 @@ func setHeaderString(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitT
 
 // extractFailedTestCases initialises the FailedTestCasesReport struct's
 // 'failedTestCaseNames' field with the names of failed test cases
-// within the given JUnitTestSuites. It does nothing, if the given
-// JUnitTestSuites is nil.
+// within given JUnitTestSuites -- if the given JUnitTestSuites is !nil.
+// And if it's nil, 'failedTestCaseNames' field is init with content of
+// "build-log.txt" file, if it exists.
 func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *prow.ArtifactScanner, logger zerolog.Logger, overallJUnitSuites *reporters.JUnitTestSuites) {
 	if len(overallJUnitSuites.TestSuites) == 0 {
 		parentStepName := "/"
