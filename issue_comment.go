@@ -218,8 +218,7 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *pro
 					logger.Debug().Msgf("Found a Test Case (suiteName/testCaseName): %s/%s, that didn't pass", testSuite.Name, tc.Name)
 					tcMessage := ""
 					if failedTCReport.hasBootstrapFailure {
-						systemErrString := strings.Split(tc.SystemErr, "\n")
-						tcMessage = strings.Join(systemErrString[len(systemErrString)-16:], "\n")
+						tcMessage = returnLastNLines(tc.SystemErr, 16)
 					} else if tc.Failure != nil {
 						tcMessage = tc.Failure.Message
 					} else {
@@ -282,4 +281,9 @@ func attachProwURLLogKeysToLogger(ctx context.Context, logger zerolog.Logger, pr
 		return logctx.Logger()
 	}
 	return logger
+}
+
+func returnLastNLines(content string, n int) string {
+	systemErrString := strings.Split(content, "\n")
+	return strings.Join(systemErrString[len(systemErrString)-n:], "\n")
 }
