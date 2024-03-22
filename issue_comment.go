@@ -39,6 +39,7 @@ const (
 	openshiftCITestSuiteName = "openshift-ci job"
 	e2eTestSuiteName         = "Red Hat App Studio E2E tests"
 	LogKeyProwJobURL         = "prow_job_url"
+	dropdownSummaryString    = "Click to view logs"
 	regexToFetchProwURL      = `(https:\/\/prow.ci.openshift.org\/view\/gs\/test-platform-results\/pr-logs\/pull.*)\)`
 )
 
@@ -203,7 +204,7 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *pro
 				return
 			}
 
-			testCaseEntry := "<details><summary>Click to view logs</summary><br><pre>" + asMap[prow.ArtifactFilename(buildLogFileName)].Content + "</pre></details>"
+			testCaseEntry := returnContentWrappedInDropdown(dropdownSummaryString, asMap[prow.ArtifactFilename(buildLogFileName)].Content)
 			failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
 		} else {
 			logger.Error().Msgf("Failed to find any files within the directory: %s", parentStepName)
@@ -286,4 +287,8 @@ func attachProwURLLogKeysToLogger(ctx context.Context, logger zerolog.Logger, pr
 func returnLastNLines(content string, n int) string {
 	systemErrString := strings.Split(content, "\n")
 	return strings.Join(systemErrString[len(systemErrString)-n:], "\n")
+}
+
+func returnContentWrappedInDropdown(summary, content string) string {
+	return "<details><summary>" + summary + "</summary><br><pre>" + content + "</pre></details>"
 }
