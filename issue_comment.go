@@ -219,13 +219,15 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *pro
 					logger.Debug().Msgf("Found a Test Case (suiteName/testCaseName): %s/%s, that didn't pass", testSuite.Name, tc.Name)
 					tcMessage := ""
 					if failedTCReport.hasBootstrapFailure {
-						tcMessage = returnLastNLines(tc.SystemErr, 16)
+						tcMessage = "```\n" + returnLastNLines(tc.SystemErr, 16) + "\n```"
+					} else if tc.Status == "timedout" {
+						tcMessage = returnContentWrappedInDropdown(dropdownSummaryString, tc.SystemErr)
 					} else if tc.Failure != nil {
-						tcMessage = tc.Failure.Message
+						tcMessage = "```\n" + tc.Failure.Message + "\n```"
 					} else {
-						tcMessage = tc.Error.Message
+						tcMessage = "```\n" + tc.Error.Message + "\n```"
 					}
-					testCaseEntry := "* :arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n```\n" + tcMessage + "\n```"
+					testCaseEntry := "* :arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n" + tcMessage
 					failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
 				}
 			}
