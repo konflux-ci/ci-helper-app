@@ -39,6 +39,7 @@ const (
 	openshiftCITestSuiteName = "openshift-ci job"
 	e2eTestSuiteName         = "Red Hat App Studio E2E tests"
 	LogKeyProwJobURL         = "prow_job_url"
+	dropdownSummaryString    = "Click to view logs"
 	regexToFetchProwURL      = `(https:\/\/prow.ci.openshift.org\/view\/gs\/test-platform-results\/pr-logs\/pull.*)\)`
 )
 
@@ -203,7 +204,7 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *pro
 				return
 			}
 
-			testCaseEntry := "<details><summary>Click to view logs</summary><br><pre>" + asMap[prow.ArtifactFilename(buildLogFileName)].Content + "</pre></details>"
+			testCaseEntry := returnContentWrappedInDropdown(dropdownSummaryString, asMap[prow.ArtifactFilename(buildLogFileName)].Content)
 			failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
 		} else {
 			logger.Error().Msgf("Failed to find any files within the directory: %s", parentStepName)
@@ -218,14 +219,15 @@ func (failedTCReport *FailedTestCasesReport) extractFailedTestCases(scanner *pro
 					logger.Debug().Msgf("Found a Test Case (suiteName/testCaseName): %s/%s, that didn't pass", testSuite.Name, tc.Name)
 					tcMessage := ""
 					if failedTCReport.hasBootstrapFailure {
-						systemErrString := strings.Split(tc.SystemErr, "\n")
-						tcMessage = strings.Join(systemErrString[len(systemErrString)-16:], "\n")
+						tcMessage = "```\n" + returnLastNLines(tc.SystemErr, 16) + "\n```"
+					} else if tc.Status == "timedout" {
+						tcMessage = returnContentWrappedInDropdown(dropdownSummaryString, tc.SystemErr)
 					} else if tc.Failure != nil {
-						tcMessage = tc.Failure.Message
+						tcMessage = "```\n" + tc.Failure.Message + "\n```"
 					} else {
-						tcMessage = tc.Error.Message
+						tcMessage = "```\n" + tc.Error.Message + "\n```"
 					}
-					testCaseEntry := "* :arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n```\n" + tcMessage + "\n```"
+					testCaseEntry := "* :arrow_right: " + "[**`" + tc.Status + "`**] " + tc.Name + "\n" + tcMessage
 					failedTCReport.failedTestCaseNames = append(failedTCReport.failedTestCaseNames, testCaseEntry)
 				}
 			}
@@ -282,4 +284,13 @@ func attachProwURLLogKeysToLogger(ctx context.Context, logger zerolog.Logger, pr
 		return logctx.Logger()
 	}
 	return logger
+}
+
+func returnLastNLines(content string, n int) string {
+	systemErrString := strings.Split(content, "\n")
+	return strings.Join(systemErrString[len(systemErrString)-n:], "\n")
+}
+
+func returnContentWrappedInDropdown(summary, content string) string {
+	return "<details><summary>" + summary + "</summary><br><pre>" + content + "</pre></details>"
 }
