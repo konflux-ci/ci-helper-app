@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: ci-helper-app
+  labels:
+    app: ci-helper-app
+spec:
+  ipFamilies:
+    - IPv4
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  internalTrafficPolicy: Cluster
+  ipFamilyPolicy: SingleStack
+  selector:
+    app: ci-helper-app
