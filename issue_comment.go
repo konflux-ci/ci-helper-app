@@ -34,12 +34,14 @@ import (
 
 const (
 	targetAuthor             = "openshift-ci[bot]"
+	bucketName               = "test-platform-results"
 	junitFilename            = "junit.xml"
 	junitFilenameRegex       = `(junit.xml)`
 	openshiftCITestSuiteName = "openshift-ci job"
 	e2eTestSuiteName         = "Red Hat App Studio E2E tests"
 	LogKeyProwJobURL         = "prow_job_url"
 	dropdownSummaryString    = "Click to view logs"
+	reportingLinkPrefix      = "https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/"
 	regexToFetchProwURL      = `(https:\/\/prow.ci.openshift.org\/view\/gs\/test-platform-results\/pr-logs\/pull.*)\)`
 )
 
@@ -49,8 +51,10 @@ type PRCommentHandler struct {
 
 type FailedTestCasesReport struct {
 	headerString        string
+	podsLink            string
 	failedTestCaseNames []string
 	hasBootstrapFailure bool
+	customResourcesLink string
 }
 
 func (h *PRCommentHandler) Handles() []string {
@@ -123,6 +127,7 @@ func (h *PRCommentHandler) Handle(ctx context.Context, eventType, deliveryID str
 
 	failedTCReport := setHeaderString(logger, overallJUnitSuites)
 	failedTCReport.extractFailedTestCases(scanner, logger, overallJUnitSuites)
+	failedTCReport.initPodAndCRsLink(scanner)
 
 	if err = failedTCReport.updateCommentWithFailedTestCasesReport(ctx, logger, client, event, body); err != nil {
 		return err
@@ -188,6 +193,15 @@ func setHeaderString(logger zerolog.Logger, overallJUnitSuites *reporters.JUnitT
 	return &failedTCReport
 }
 
+// initPodAndCRsLink initialises the FailedTestCasesReport struct's
+// 'podsLink' and 'customResourcesLink' field with the link to the
+// directory where pod logs and generated custom resources are
+// stored, respectively.
+func (failedTCReport *FailedTestCasesReport) initPodAndCRsLink(scanner *prow.ArtifactScanner) {
+	failedTCReport.podsLink = reportingLinkPrefix + bucketName + "/" + scanner.ArtifactDirectoryPrefix + "gather-extra/artifacts/pods/"
+	failedTCReport.customResourcesLink = reportingLinkPrefix + bucketName + "/" + scanner.ArtifactDirectoryPrefix + "redhat-appstudio-gather/artifacts/"
+}
+
 // extractFailedTestCases initialises the FailedTestCasesReport struct's
 // 'failedTestCaseNames' field with the names of failed test cases
 // within given JUnitTestSuites -- if the given JUnitTestSuites is !nil.
@@ -247,6 +261,11 @@ func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesRep
 
 		for _, failedTCName := range failedTCReport.failedTestCaseNames {
 			msg = msg + fmt.Sprintf("\n %s\n", failedTCName)
+		}
+
+		if (failedTCReport.podsLink != "" && failedTCReport.customResourcesLink != "") {
+			// Add pods and CRs' links
+			msg = msg + fmt.Sprintf("[Link to Pod logs](%s). [Link to Custom Resources](%s)\n", failedTCReport.podsLink, failedTCReport.customResourcesLink)
 		}
 
 		msg = msg + "\n-------------------------------\n\n" + commentBody
