@@ -9,7 +9,7 @@ require (
 	github.com/palantir/go-githubapp v0.22.0
 	github.com/pkg/errors v0.9.1
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
-	github.com/redhat-appstudio/qe-tools v0.1.1-0.20240318114021-142df5185ce6
+	github.com/redhat-appstudio/qe-tools v0.1.1-0.20240521095917-f3b3313c2f36
 	github.com/rs/zerolog v1.32.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.29.4
