@@ -40,8 +40,9 @@ const (
 	e2eTestSuiteName         = "Red Hat App Studio E2E tests"
 	LogKeyProwJobURL         = "prow_job_url"
 	dropdownSummaryString    = "Click to view logs"
-	CRsJunitPropertyName     = "redhat-appstudio-gather"
-	podsJunitPropertyName    = "gather-extra"
+	cRsPropertyName          = "redhat-appstudio-gather"
+	podsPropertyName         = "gather-extra"
+	junitSummaryPropertyName = "html-report-link"
 	regexToFetchProwURL      = `(https:\/\/prow.ci.openshift.org\/view\/gs\/test-platform-results\/pr-logs\/pull.*)\)`
 )
 
@@ -50,11 +51,12 @@ type PRCommentHandler struct {
 }
 
 type FailedTestCasesReport struct {
-	headerString        string
-	podsLink            string
-	failedTestCaseNames []string
-	hasBootstrapFailure bool
-	customResourcesLink string
+	headerString         string
+	podsLink             string
+	failedTestCaseNames  []string
+	hasBootstrapFailure  bool
+	customResourcesLink  string
+	jUnitSummaryFileLink string
 }
 
 func (h *PRCommentHandler) Handles() []string {
@@ -205,18 +207,23 @@ func (failedTCReport *FailedTestCasesReport) initPodAndCRsLink(overallJUnitSuite
 
 		foundCRsProperty := false
 		foundPodsProperty := false
+		foundJUnitSummaryProperty := false
 
 		for _, property := range testSuite.Properties.Properties {
-			if property.Name == CRsJunitPropertyName {
+			if property.Name == cRsPropertyName {
 				failedTCReport.customResourcesLink = property.Value
 				foundCRsProperty = true
 			}
-			if property.Name == podsJunitPropertyName {
+			if property.Name == podsPropertyName {
 				failedTCReport.podsLink = property.Value + "/pods"
 				foundPodsProperty = true
 			}
+			if property.Name == junitSummaryPropertyName {
+				failedTCReport.jUnitSummaryFileLink = property.Value
+				foundJUnitSummaryProperty = true
+			}
 
-			if foundCRsProperty && foundPodsProperty {
+			if foundCRsProperty && foundPodsProperty && foundJUnitSummaryProperty {
 				break // Exit inner loop early if both properties are found
 			}
 		}
@@ -286,9 +293,11 @@ func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesRep
 			msg = msg + fmt.Sprintf("\n %s\n", failedTCName)
 		}
 
-		if (failedTCReport.podsLink != "" && failedTCReport.customResourcesLink != "") {
+		if failedTCReport.podsLink != "" && failedTCReport.customResourcesLink != "" && failedTCReport.jUnitSummaryFileLink != "" {
 			// Add pods and CRs' links
-			msg = msg + fmt.Sprintf("[Link to Pod logs](%s). [Link to Custom Resources](%s)\n", failedTCReport.podsLink, failedTCReport.customResourcesLink)
+			msg = msg + fmt.Sprintf(":see_no_evil: [Link to Pod logs](%s).\n :hear_no_evil: [Link to Custom Resources](%s).\n"+
+				":speak_no_evil: [Link to junit-summary.html](%s).\n", failedTCReport.podsLink, failedTCReport.customResourcesLink,
+				failedTCReport.jUnitSummaryFileLink)
 		}
 
 		msg = msg + "\n-------------------------------\n\n" + commentBody
