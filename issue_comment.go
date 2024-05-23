@@ -212,7 +212,7 @@ func (failedTCReport *FailedTestCasesReport) initPodAndCRsLink(overallJUnitSuite
 				foundCRsProperty = true
 			}
 			if property.Name == podsJunitPropertyName {
-				failedTCReport.podsLink = property.Value
+				failedTCReport.podsLink = property.Value + "/pods"
 				foundPodsProperty = true
 			}
 
