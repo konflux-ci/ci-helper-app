@@ -24,10 +24,10 @@ import (
 	"time"
 
 	"github.com/google/go-github/v58/github"
+	"github.com/konflux-ci/qe-tools/pkg/prow"
 	reporters "github.com/onsi/ginkgo/v2/reporters"
 	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/pkg/errors"
-	"github.com/redhat-appstudio/qe-tools/pkg/prow"
 	"github.com/rs/zerolog"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
