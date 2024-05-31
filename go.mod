@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/google/go-github/v58 v58.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
-	github.com/konflux-ci/qe-tools v0.1.1-0.20240529164808-5937f91dbfa5
+	github.com/konflux-ci/qe-tools v0.1.1-0.20240531105307-af304d47ad47
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/palantir/go-githubapp v0.22.0
 	github.com/pkg/errors v0.9.1
