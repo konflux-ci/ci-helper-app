@@ -1136,6 +1136,8 @@ github.com/klauspost/compress v1.15.9/go.mod h1:PhcZ0MbTNciWF3rruxRgKxI5NkcHHrHU
 github.com/klauspost/cpuid/v2 v2.0.9/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
 github.com/konflux-ci/qe-tools v0.1.1-0.20240529164808-5937f91dbfa5 h1:fjMlQ3Qzoy+PLi4WAJJxXc6/cSH2vCHlC501FOmbVpc=
 github.com/konflux-ci/qe-tools v0.1.1-0.20240529164808-5937f91dbfa5/go.mod h1:g/fVyiVPO1dyOHCu2BLmMnjwtMGFOj3aYUxIr9YoaF8=
+github.com/konflux-ci/qe-tools v0.1.1-0.20240531105307-af304d47ad47 h1:tkOIWBo4foQZ4jFTdiS3cKPve8VwJhmi6yWi753+bFo=
+github.com/konflux-ci/qe-tools v0.1.1-0.20240531105307-af304d47ad47/go.mod h1:g/fVyiVPO1dyOHCu2BLmMnjwtMGFOj3aYUxIr9YoaF8=
 github.com/konflux-ci/qe-tools v0.1.1 h1:UhaRN3D2tOm1qGkK23ceuvC9Eb/p8S5T1hwjqjPbVqU=
 github.com/konflux-ci/qe-tools v0.1.1/go.mod h1:tg99zqn3TfVcMZLsYbJg7PI/DMTG/zC42pfOd1L9e5g=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
