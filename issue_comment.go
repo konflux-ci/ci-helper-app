@@ -286,7 +286,7 @@ func (failedTCReport *FailedTestCasesReport) updateCommentWithFailedTestCasesRep
 	repoName := event.GetRepo().GetName()
 	commentID := event.GetComment().GetID()
 
-	if failedTCReport.failedTestCaseNames != nil && len(failedTCReport.failedTestCaseNames) > 0 {
+	if len(failedTCReport.failedTestCaseNames) > 0 {
 		msg := failedTCReport.headerString
 
 		for _, failedTCName := range failedTCReport.failedTestCaseNames {
